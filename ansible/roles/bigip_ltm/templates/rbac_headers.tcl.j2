@@ -1,0 +1,23 @@
+when ACCESS_ACL_ALLOWED {
+    set apm_user [ACCESS::session data get session.logon.last.username]
+    if { $apm_user ne "" } {
+        HTTP::header insert "X-Authenticated-User" $apm_user
+        if { [string tolower $apm_user] contains "admin" } {
+            HTTP::header insert "X-User-Role" "{{ rbac_admin_role | default(bigip_ltm_rbac_admin_role_header) }}"
+        } else {
+            HTTP::header insert "X-User-Role" "{{ rbac_user_role | default(bigip_ltm_rbac_user_role_header) }}"
+        }
+        set pwd_last_set [ACCESS::session data get session.ad.last.pwdLastSet]
+        if { $pwd_last_set ne "" } {
+            HTTP::header insert "X-AD-Password-Last-Set" $pwd_last_set
+        }
+        set acct_exp [ACCESS::session data get session.ad.last.accountExpires]
+        if { $acct_exp ne "" } {
+            HTTP::header insert "X-AD-Account-Expires" $acct_exp
+        }
+        set uac [ACCESS::session data get session.ad.last.userAccountControl]
+        if { $uac ne "" } {
+            HTTP::header insert "X-AD-UserAccountControl" $uac
+        }
+    }
+}

@@ -1,0 +1,26 @@
+services:
+  portal-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: f5-apm-ad-portal:latest
+    container_name: f5-apm-portal
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PORT=8000
+      - AD_DC_IP=${AD_DC_IP:-10.1.20.7}
+      - AD_LDAPS_PORT=${AD_LDAPS_PORT:-636}
+      - AD_DOMAIN=${AD_DOMAIN:-f5lab.local}
+      - AD_SVC_USER=${AD_SVC_USER:-admin}
+      - AD_SVC_PASS=${AD_SVC_PASS:-admin}
+      - AD_BASE_DN=${AD_BASE_DN:-DC=f5lab,DC=local}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

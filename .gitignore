@@ -1,0 +1,22 @@
+# Environment / secrets
+.env
+*.env
+!.env.example
+
+# Private keys & certificates material
+*.key
+*.pem
+*.pfx
+*.p12
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,73 @@
+---
+# ==============================================================================
+# F5 BIG-IP APM & Active Directory LDAPS Lab Variables
+# ==============================================================================
+
+# Project & Workspace Paths
+lab_project_dir: "/home/ubuntu/f5-apm-ad-lab"
+lab_scripts_dir: "/home/ubuntu/f5-apm-ad-lab/scripts"
+lab_certs_dir: "/home/ubuntu/f5-apm-ad-lab/certs"
+
+# BIG-IP Management Connection
+f5_provider:
+  server: "{{ f5_mgmt_ip | default('10.1.1.4') }}"
+  server_port: "{{ f5_mgmt_port | default(443) }}"
+  user: "{{ f5_user | default('admin') }}"
+  password: "{{ f5_pass | default('admin') }}"
+  validate_certs: false
+  transport: "rest"
+
+# Active Directory Domain Controller (LDAPS Port 636)
+ad_dc_ip: "10.1.20.7"
+ad_ldaps_port: 636
+ad_domain: "f5lab.local"
+ad_partition: "Common"
+ad_svc_user: "admin"
+ad_svc_pass: "admin"
+ad_base_dn: "DC=f5lab,DC=local"
+ad_aaa_server_name: "aaa_lab_ad_ldaps"
+ad_timeout: 15
+
+# Certificates & SSL Profiles
+ca_cert_name: "lab_root_ca"
+ca_cert_file: "/home/ubuntu/f5-apm-ad-lab/certs/lab_root_ca.crt"
+ssl_client_profile_name: "clientssl"
+
+# Backend Container & Docker Service
+backend_container_project_dir: "/home/ubuntu/f5-apm-ad-lab"
+backend_container_health_url: "http://127.0.0.1:8000/health"
+backend_container_port: 8000
+backend_container_expected_status: 200
+backend_container_expected_body: "OK"
+backend_container_health_retries: 10
+backend_container_health_delay: 2
+
+# LTM Node, Pool & Health Monitor
+node_name: "node_portal_app"
+node_ip: "10.1.20.14"
+node_port: 8000
+pool_name: "pool_apm_ad_backend"
+health_monitor_name: "mon_portal_http"
+health_monitor_send: "GET /health HTTP/1.1\r\nHost: 10.1.20.14\r\nConnection: Close\r\n\r\n"
+health_monitor_receive: "OK"
+health_monitor_interval: 5
+health_monitor_timeout: 16
+pool_lb_method: "round-robin"
+irule_name: "rule_apm_ad_rbac_headers"
+irule_template: "rbac_headers.tcl.j2"
+rbac_admin_role_header: "Enterprise Administrator"
+rbac_user_role_header: "Standard Corporate User"
+
+# LTM Virtual Server
+vs_name: "vs_apm_ad_lab_https"
+vs_destination: "10.1.10.100"
+vs_port: 443
+vs_snat: "Automap"
+http_profile_name: "http"
+
+# APM Access Profile & Policies
+access_profile_name: "ap_ad_password_mgmt"
+access_policy_timeout: 300
+max_concurrent_sessions: 100
+apm_policy_import_type: "profile_access"
+apm_policy_import_force: true

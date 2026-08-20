@@ -1,0 +1,61 @@
+---
+# ==============================================================================
+# Playbook: Export F5 APM Lab Build & Artifacts
+# ==============================================================================
+# Exports:
+# 1. Complete Project Release Archive (.tar.gz)
+# 2. Live APM Access Policy Package (.tar.gz) from BIG-IP via bigip_apm_policy_fetch
+# ==============================================================================
+
+- name: Export Lab Codebase and F5 BIG-IP Artifacts
+  hosts: localhost
+  gather_facts: false
+  vars:
+    export_output_dir: "{{ lab_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}/dist"
+    export_tar_name: "f5-apm-ad-lab-build.tar.gz"
+  tasks:
+    - name: Create export distribution directory
+      ansible.builtin.file:
+        path: "{{ export_output_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Package Complete Project Workspace Archive
+      community.general.archive:
+        path:
+          - "{{ lab_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}/ansible"
+          - "{{ lab_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}/certs"
+          - "{{ lab_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}/scripts"
+          - "{{ lab_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}/Dockerfile"
+          - "{{ lab_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}/docker-compose.yml"
+          - "{{ lab_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}/requirements.txt"
+          - "{{ lab_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}/README.md"
+          - "{{ lab_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}/.env.example"
+        dest: "{{ export_output_dir }}/{{ export_tar_name }}"
+        format: gz
+        mode: "0644"
+      register: project_archive_result
+
+    - name: Display Project Archive Export Status
+      ansible.builtin.debug:
+        msg: "Project build archive exported to: {{ project_archive_result.dest }}"
+
+- name: Export APM Policy from BIG-IP
+  hosts: bigip
+  gather_facts: false
+  vars:
+    export_output_dir: "{{ lab_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}/dist"
+  tasks:
+    - name: Export APM Policy Profile from BIG-IP via bigip_apm_policy_fetch
+      f5networks.f5_modules.bigip_apm_policy_fetch:
+        provider: "{{ f5_provider }}"
+        name: "{{ access_profile_name | default('ap_ad_password_mgmt') }}"
+        dest: "{{ export_output_dir }}/{{ access_profile_name | default('ap_ad_password_mgmt') }}_exported.tar.gz"
+        type: "{{ apm_policy_import_type | default('profile_access') }}"
+      delegate_to: localhost
+      register: apm_fetch_result
+      failed_when: false
+
+    - name: Display APM Policy Export Status
+      ansible.builtin.debug:
+        msg: "APM Policy Export: {{ 'Success' if not (apm_fetch_result.failed | default(false)) else 'Skipped' }}"

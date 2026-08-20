@@ -1,0 +1,12 @@
+---
+# ==============================================================================
+# Role Defaults: backend_container
+# ==============================================================================
+
+backend_container_project_dir: "/home/ubuntu/f5-apm-ad-lab"
+backend_container_health_url: "http://127.0.0.1:8000/health"
+backend_container_port: 8000
+backend_container_expected_status: 200
+backend_container_expected_body: "OK"
+backend_container_health_retries: 10
+backend_container_health_delay: 2

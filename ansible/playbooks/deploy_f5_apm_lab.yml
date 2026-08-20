@@ -1,0 +1,43 @@
+---
+# ==============================================================================
+# Master Playbook: Deploy F5 BIG-IP APM Active Directory LDAPS Password Lab
+# ==============================================================================
+# Architecture (Imperative Modular Flow):
+# 1. Backend Container: Provision Docker Portal via community.docker
+# 2. AAA & Certificates: Upload CA & configure AD AAA server via Direct iControl REST
+# 3. APM Access Profile: Import APM VPE Policy via bigip_apm_policy_import
+# 4. LTM Application Stack: Provision Node, Monitor, Pool, iRule & HTTPS Virtual Server
+# 5. Automated Verification: Execute TC-01 through TC-05 test suite
+# ==============================================================================
+
+- name: Deploy Backend Portal Container
+  hosts: backend
+  gather_facts: false
+  roles:
+    - backend_container
+
+- name: Provision F5 BIG-IP AAA, APM & LTM Infrastructure
+  hosts: bigip
+  gather_facts: false
+  roles:
+    - bigip_aaa_ad
+    - bigip_apm
+    - bigip_ltm
+
+- name: Post-Deployment Verification
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Wait for APM and LTM stack synchronization
+      ansible.builtin.pause:
+        seconds: 3
+
+    - name: Run Lab Test Suite (TC-01 through TC-05)
+      ansible.builtin.command:
+        cmd: python3 /home/ubuntu/f5-apm-ad-lab/scripts/run_test_suite.py
+      register: test_suite_result
+      changed_when: false
+
+    - name: Display Test Suite Results
+      ansible.builtin.debug:
+        var: test_suite_result.stdout_lines

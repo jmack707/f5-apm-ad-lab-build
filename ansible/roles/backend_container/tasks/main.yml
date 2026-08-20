@@ -1,0 +1,28 @@
+---
+# ==============================================================================
+# Role Tasks: backend_container - Deploy & Manage Demo Portal Container
+# ==============================================================================
+
+- name: Deploy Backend Portal Container via Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ backend_project_dir | default(backend_container_project_dir) }}"
+    state: present
+    build: always
+  register: backend_container_compose_result
+
+- name: Wait for Portal Health Check endpoint
+  ansible.builtin.uri:
+    url: "{{ backend_health_url | default(backend_container_health_url) }}"
+    method: GET
+    return_content: true
+    status_code: "{{ backend_expected_status | default(backend_container_expected_status) }}"
+  register: backend_container_health_resp
+  until: >-
+    backend_container_health_resp.status == (backend_expected_status | default(backend_container_expected_status)) and
+    (backend_expected_body | default(backend_container_expected_body)) in backend_container_health_resp.content
+  retries: "{{ backend_health_retries | default(backend_container_health_retries) }}"
+  delay: "{{ backend_health_delay | default(backend_container_health_delay) }}"
+
+- name: Verify Backend Container Status
+  ansible.builtin.debug:
+    msg: "Backend Portal Container is running and healthy: {{ backend_container_health_resp.content }}"

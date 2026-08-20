@@ -1,0 +1,70 @@
+---
+# ==============================================================================
+# Role Tasks: bigip_ltm - Provision Imperative LTM Resources for APM Lab
+# ==============================================================================
+
+- name: Create Backend Node
+  f5networks.f5_modules.bigip_node:
+    provider: "{{ f5_provider }}"
+    name: "{{ node_name | default(bigip_ltm_node_name) }}"
+    address: "{{ node_ip | default(bigip_ltm_node_ip) }}"
+    state: present
+  delegate_to: localhost
+
+- name: Create HTTP Health Monitor for Portal
+  f5networks.f5_modules.bigip_monitor_http:
+    provider: "{{ f5_provider }}"
+    name: "{{ health_monitor_name | default(bigip_ltm_health_monitor_name) }}"
+    send: "{{ health_monitor_send | default(bigip_ltm_health_monitor_send) }}"
+    receive: "{{ health_monitor_receive | default(bigip_ltm_health_monitor_receive) }}"
+    interval: "{{ health_monitor_interval | default(bigip_ltm_health_monitor_interval) }}"
+    timeout: "{{ health_monitor_timeout | default(bigip_ltm_health_monitor_timeout) }}"
+    state: present
+  delegate_to: localhost
+
+- name: Create LTM Pool for Backend Portal
+  f5networks.f5_modules.bigip_pool:
+    provider: "{{ f5_provider }}"
+    name: "{{ pool_name | default(bigip_ltm_pool_name) }}"
+    monitors: "{{ pool_monitors | default(bigip_ltm_pool_monitors) }}"
+    lb_method: "{{ pool_lb_method | default(bigip_ltm_pool_lb_method) }}"
+    state: present
+  delegate_to: localhost
+
+- name: Add Backend Member to Pool
+  f5networks.f5_modules.bigip_pool_member:
+    provider: "{{ f5_provider }}"
+    pool: "{{ pool_name | default(bigip_ltm_pool_name) }}"
+    name: "{{ node_name | default(bigip_ltm_node_name) }}"
+    address: "{{ node_ip | default(bigip_ltm_node_ip) }}"
+    port: "{{ node_port | default(bigip_ltm_node_port) }}"
+    state: present
+  delegate_to: localhost
+
+- name: Create RBAC and Password Lifecycle iRule
+  f5networks.f5_modules.bigip_irule:
+    provider: "{{ f5_provider }}"
+    module: ltm
+    name: "{{ irule_name | default(bigip_ltm_irule_name) }}"
+    content: "{{ lookup('ansible.builtin.template', irule_template | default(bigip_ltm_irule_template)) }}"
+    state: present
+  delegate_to: localhost
+
+- name: Create HTTPS Virtual Server with APM Access Profile and RBAC iRule
+  f5networks.f5_modules.bigip_virtual_server:
+    provider: "{{ f5_provider }}"
+    name: "{{ vs_name | default(bigip_ltm_vs_name) }}"
+    destination: "{{ vs_destination | default(bigip_ltm_vs_destination) }}"
+    port: "{{ vs_port | default(bigip_ltm_vs_port) }}"
+    pool: "{{ pool_name | default(bigip_ltm_pool_name) }}"
+    snat: "{{ vs_snat | default(bigip_ltm_vs_snat) }}"
+    irules: "{{ vs_irules | default(bigip_ltm_vs_irules) }}"
+    profiles: "{{ vs_profiles | default(bigip_ltm_vs_profiles) }}"
+    state: present
+  delegate_to: localhost
+
+- name: Save TMOS Configuration
+  f5networks.f5_modules.bigip_config:
+    provider: "{{ f5_provider }}"
+    save: true
+  delegate_to: localhost

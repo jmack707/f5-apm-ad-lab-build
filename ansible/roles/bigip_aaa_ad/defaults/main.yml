@@ -1,0 +1,15 @@
+---
+# ==============================================================================
+# Role Defaults: bigip_aaa_ad
+# ==============================================================================
+
+bigip_aaa_ad_server_name: "aaa_lab_ad_ldaps"
+bigip_aaa_ad_partition: "Common"
+bigip_aaa_ad_domain: "f5lab.local"
+bigip_aaa_ad_dc_ip: "10.1.20.7"
+bigip_aaa_ad_ldaps_port: 636
+bigip_aaa_ad_svc_user: "admin"
+bigip_aaa_ad_svc_pass: "admin"
+bigip_aaa_ad_timeout: 15
+bigip_aaa_ad_ca_cert_name: "lab_root_ca"
+bigip_aaa_ad_ca_cert_file: "/home/ubuntu/f5-apm-ad-lab/certs/lab_root_ca.crt"

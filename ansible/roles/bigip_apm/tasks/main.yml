@@ -1,0 +1,21 @@
+---
+# ==============================================================================
+# Role Tasks: bigip_apm - Provision APM Access Policy Profile via policy_import
+# ==============================================================================
+
+- name: Import APM Access Profile and Policy via bigip_apm_policy_import
+  f5networks.f5_modules.bigip_apm_policy_import:
+    provider: "{{ f5_provider }}"
+    name: "{{ access_profile_name | default(bigip_apm_access_profile_name) }}"
+    source: "{{ role_path }}/files/{{ access_profile_name | default(bigip_apm_access_profile_name) }}.tar.gz"
+    type: "{{ apm_policy_import_type | default(bigip_apm_policy_import_type) }}"
+    force: "{{ apm_policy_import_force | default(bigip_apm_policy_import_force) }}"
+  delegate_to: localhost
+  register: bigip_apm_policy_import_result
+
+- name: Save TMOS Configuration
+  f5networks.f5_modules.bigip_config:
+    provider: "{{ f5_provider }}"
+    save: true
+  delegate_to: localhost
+  register: bigip_apm_save_result

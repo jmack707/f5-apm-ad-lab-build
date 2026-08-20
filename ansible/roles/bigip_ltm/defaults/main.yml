@@ -1,0 +1,40 @@
+---
+# ==============================================================================
+# Role Defaults: bigip_ltm
+# ==============================================================================
+
+bigip_ltm_node_name: "node_portal_app"
+bigip_ltm_node_ip: "10.1.20.14"
+bigip_ltm_node_port: 8000
+
+bigip_ltm_health_monitor_name: "mon_portal_http"
+bigip_ltm_health_monitor_send: "GET /health HTTP/1.1\r\nHost: 10.1.20.14\r\nConnection: Close\r\n\r\n"
+bigip_ltm_health_monitor_receive: "OK"
+bigip_ltm_health_monitor_interval: 5
+bigip_ltm_health_monitor_timeout: 16
+
+bigip_ltm_pool_name: "pool_apm_ad_backend"
+bigip_ltm_pool_monitors:
+  - "{{ health_monitor_name | default('mon_portal_http') }}"
+bigip_ltm_pool_lb_method: "round-robin"
+
+bigip_ltm_irule_name: "rule_apm_ad_rbac_headers"
+bigip_ltm_irule_template: "rbac_headers.tcl.j2"
+bigip_ltm_rbac_admin_role_header: "Enterprise Administrator"
+bigip_ltm_rbac_user_role_header: "Standard Corporate User"
+
+bigip_ltm_vs_name: "vs_apm_ad_lab_https"
+bigip_ltm_vs_destination: "10.1.10.100"
+bigip_ltm_vs_port: 443
+bigip_ltm_vs_snat: "Automap"
+bigip_ltm_ssl_client_profile_name: "clientssl"
+bigip_ltm_access_profile_name: "ap_ad_password_mgmt"
+bigip_ltm_http_profile_name: "http"
+
+bigip_ltm_vs_irules:
+  - "{{ irule_name | default('rule_apm_ad_rbac_headers') }}"
+
+bigip_ltm_vs_profiles:
+  - "{{ http_profile_name | default('http') }}"
+  - "{{ ssl_client_profile_name | default('clientssl') }}"
+  - "{{ access_profile_name | default('ap_ad_password_mgmt') }}"

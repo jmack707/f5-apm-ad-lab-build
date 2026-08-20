@@ -1,0 +1,23 @@
+---
+# ==============================================================================
+# Role Metadata: bigip_apm
+# ==============================================================================
+
+galaxy_info:
+  author: Antigravity Lab Team
+  description: Provisions F5 BIG-IP APM Access Profile, VPE Policy, and HTTPS Virtual Server
+  company: F5 APM AD Lab
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: GenericLinux
+      versions:
+        - all
+  galaxy_tags:
+    - f5
+    - bigip
+    - apm
+    - accesspolicy
+    - virtualserver
+
+dependencies: []

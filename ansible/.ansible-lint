@@ -1,0 +1,15 @@
+---
+# ==============================================================================
+# Ansible-Lint Configuration
+# ==============================================================================
+# Configures strict linting rules and best coding practices for Ansible.
+# ==============================================================================
+
+profile: production
+
+exclude_paths:
+  - .cache/
+  - .git/
+  - .github/
+  - .venv/
+  - scratch/

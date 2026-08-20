@@ -1,0 +1,10 @@
+---
+# ==============================================================================
+# Role Defaults: bigip_apm
+# ==============================================================================
+
+bigip_apm_access_profile_name: "ap_ad_password_mgmt"
+bigip_apm_access_policy_timeout: 300
+bigip_apm_max_concurrent_sessions: 100
+bigip_apm_policy_import_type: "profile_access"
+bigip_apm_policy_import_force: true

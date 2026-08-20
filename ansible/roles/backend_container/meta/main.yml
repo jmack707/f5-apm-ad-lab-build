@@ -1,0 +1,21 @@
+---
+# ==============================================================================
+# Role Metadata: backend_container
+# ==============================================================================
+
+galaxy_info:
+  author: Antigravity Lab Team
+  description: Manages backend demo portal container using Docker Compose
+  company: F5 APM AD Lab
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - docker
+    - container
+    - web
+
+dependencies: []

@@ -1,0 +1,170 @@
+---
+# ==============================================================================
+# Playbook: Teardown F5 BIG-IP APM & Backend Container Lab
+# ==============================================================================
+# Cleanly tears down:
+# 1. LTM Virtual Server via bigip_virtual_server
+# 2. APM Access Profile & Policy via TMSH
+# 3. LTM iRules via bigip_irule
+# 4. LTM Pools via bigip_pool
+# 5. LTM Health Monitors via bigip_monitor_http
+# 6. LTM Nodes via bigip_node
+# 7. AAA Active Directory Server Objects via iControl REST
+# 8. Backend Docker Container & Network via community.docker
+# ==============================================================================
+
+- name: Teardown F5 BIG-IP LTM & APM Infrastructure
+  hosts: bigip
+  gather_facts: false
+  tasks:
+    - name: Delete LTM Virtual Server
+      f5networks.f5_modules.bigip_virtual_server:
+        provider: "{{ f5_provider }}"
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ vs_name | default('vs_apm_ad_lab_https') }}"
+      delegate_to: localhost
+      failed_when: false
+
+    - name: Delete APM Access Profiles & Policies via TMSH
+      f5networks.f5_modules.bigip_command:
+        provider: "{{ f5_provider }}"
+        commands:
+          - >-
+            tmsh delete apm profile access /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }} 2>/dev/null || true
+          - >-
+            tmsh delete apm policy access-policy /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }} 2>/dev/null || true
+          - >-
+            tmsh delete apm policy policy-item /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_act_logon_page 2>/dev/null || true
+          - >-
+            tmsh delete apm policy policy-item /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_act_ad_auth 2>/dev/null || true
+          - >-
+            tmsh delete apm policy policy-item /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_ent 2>/dev/null || true
+          - >-
+            tmsh delete apm policy policy-item /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_end_allow 2>/dev/null || true
+          - >-
+            tmsh delete apm policy policy-item /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_end_deny 2>/dev/null || true
+          - >-
+            tmsh delete apm policy agent logon-page /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_act_logon_page_ag 2>/dev/null || true
+          - >-
+            tmsh delete apm policy agent aaa-active-directory /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_act_ad_auth_ag 2>/dev/null || true
+          - >-
+            tmsh delete apm policy agent ending-allow /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_end_allow_ag 2>/dev/null || true
+          - >-
+            tmsh delete apm policy agent ending-deny /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_end_deny_ag 2>/dev/null || true
+          - >-
+            tmsh delete apm policy customization-group /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_act_logon_page_ag 2>/dev/null || true
+          - >-
+            tmsh delete apm policy customization-group /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_end_deny_ag 2>/dev/null || true
+          - >-
+            tmsh delete apm policy customization-group /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_eps 2>/dev/null || true
+          - >-
+            tmsh delete apm policy customization-group /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_errormap 2>/dev/null || true
+          - >-
+            tmsh delete apm policy customization-group /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_framework_installation 2>/dev/null || true
+          - >-
+            tmsh delete apm policy customization-group /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_general_ui 2>/dev/null || true
+          - >-
+            tmsh delete apm policy customization-group /Common/{{
+            access_profile_name | default('ap_ad_password_mgmt') }}_logout 2>/dev/null || true
+      delegate_to: localhost
+      failed_when: false
+
+    - name: Delete RBAC iRule
+      f5networks.f5_modules.bigip_irule:
+        provider: "{{ f5_provider }}"
+        module: ltm
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ irule_name | default('rule_apm_ad_rbac_headers') }}"
+      delegate_to: localhost
+      failed_when: false
+
+    - name: Delete LTM Pools
+      f5networks.f5_modules.bigip_pool:
+        provider: "{{ f5_provider }}"
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ pool_name | default('pool_apm_ad_backend') }}"
+      delegate_to: localhost
+      failed_when: false
+
+    - name: Delete HTTP Monitors
+      f5networks.f5_modules.bigip_monitor_http:
+        provider: "{{ f5_provider }}"
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ health_monitor_name | default('mon_portal_http') }}"
+      delegate_to: localhost
+      failed_when: false
+
+    - name: Delete Backend Node
+      f5networks.f5_modules.bigip_node:
+        provider: "{{ f5_provider }}"
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ node_name | default('node_portal_app') }}"
+      delegate_to: localhost
+      failed_when: false
+
+    - name: Delete Active Directory AAA Server Objects via iControl REST
+      ansible.builtin.uri:
+        url: >-
+          https://{{ f5_provider.server }}:{{ f5_provider.server_port | default(443)
+          }}/mgmt/tm/apm/aaa/active-directory/~{{ ad_partition | default('Common') }}~{{ item }}
+        method: DELETE
+        user: "{{ f5_provider.user }}"
+        password: "{{ f5_provider.password }}"
+        validate_certs: "{{ f5_provider.validate_certs | default(false) }}"
+        status_code:
+          - 200
+          - 204
+          - 404
+      loop:
+        - "{{ ad_aaa_server_name | default('aaa_lab_ad_ldaps') }}"
+      delegate_to: localhost
+      failed_when: false
+
+    - name: Save TMOS Configuration
+      f5networks.f5_modules.bigip_config:
+        provider: "{{ f5_provider }}"
+        save: true
+      delegate_to: localhost
+
+- name: Teardown Backend Portal Container
+  hosts: backend
+  gather_facts: false
+  tasks:
+    - name: Stop and remove Docker Compose containers and networks
+      community.docker.docker_compose_v2:
+        project_src: "{{ backend_container_project_dir | default('/home/ubuntu/f5-apm-ad-lab') }}"
+        state: absent
+        remove_volumes: true
+        remove_orphans: true
+      register: teardown_compose_down
+
+    - name: Display Container Teardown Status
+      ansible.builtin.debug:
+        var: teardown_compose_down

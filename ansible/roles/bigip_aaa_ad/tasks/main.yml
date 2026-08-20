@@ -1,0 +1,87 @@
+---
+# ==============================================================================
+# Role Tasks: bigip_aaa_ad - Provision Active Directory AAA Server via iControl REST
+# ==============================================================================
+
+- name: Upload Root CA Certificate for LDAPS verification
+  f5networks.f5_modules.bigip_ssl_certificate:
+    provider: "{{ f5_provider }}"
+    name: "{{ ca_cert_name | default(bigip_aaa_ad_ca_cert_name) }}"
+    content: "{{ lookup('ansible.builtin.file', ca_cert_file | default(bigip_aaa_ad_ca_cert_file)) }}"
+    state: present
+  delegate_to: localhost
+  when: (ca_cert_file | default(bigip_aaa_ad_ca_cert_file)) is file
+
+- name: Check if Active Directory AAA Server Object exists via iControl REST
+  ansible.builtin.uri:
+    url: >-
+      https://{{ f5_provider.server }}:{{ f5_provider.server_port | default(443)
+      }}/mgmt/tm/apm/aaa/active-directory/~{{ ad_partition | default(bigip_aaa_ad_partition) }}~{{
+      ad_aaa_server_name | default(bigip_aaa_ad_server_name) }}
+    method: GET
+    user: "{{ f5_provider.user }}"
+    password: "{{ f5_provider.password }}"
+    validate_certs: "{{ f5_provider.validate_certs | default(false) }}"
+    status_code:
+      - 200
+      - 404
+  delegate_to: localhost
+  register: bigip_aaa_ad_check
+
+- name: Create Active Directory AAA Server Object via iControl REST
+  ansible.builtin.uri:
+    url: >-
+      https://{{ f5_provider.server }}:{{ f5_provider.server_port | default(443)
+      }}/mgmt/tm/apm/aaa/active-directory
+    method: POST
+    user: "{{ f5_provider.user }}"
+    password: "{{ f5_provider.password }}"
+    validate_certs: "{{ f5_provider.validate_certs | default(false) }}"
+    body_format: json
+    body:
+      name: "{{ ad_aaa_server_name | default(bigip_aaa_ad_server_name) }}"
+      partition: "{{ ad_partition | default(bigip_aaa_ad_partition) }}"
+      domain: "{{ ad_domain | default(bigip_aaa_ad_domain) }}"
+      domainControllers:
+        - name: "{{ ad_dc_ip | default(bigip_aaa_ad_dc_ip) }}"
+          ip: "{{ ad_dc_ip | default(bigip_aaa_ad_dc_ip) }}"
+      adminName: "{{ ad_svc_user | default(bigip_aaa_ad_svc_user) }}"
+      adminEncryptedPassword: "{{ ad_svc_pass | default(bigip_aaa_ad_svc_pass) }}"
+      timeout: "{{ ad_timeout | default(bigip_aaa_ad_timeout) }}"
+    status_code:
+      - 200
+      - 201
+  delegate_to: localhost
+  when: bigip_aaa_ad_check.status == 404
+  register: bigip_aaa_ad_create_result
+
+- name: Update Active Directory AAA Server Object via iControl REST
+  ansible.builtin.uri:
+    url: >-
+      https://{{ f5_provider.server }}:{{ f5_provider.server_port | default(443)
+      }}/mgmt/tm/apm/aaa/active-directory/~{{ ad_partition | default(bigip_aaa_ad_partition) }}~{{
+      ad_aaa_server_name | default(bigip_aaa_ad_server_name) }}
+    method: PATCH
+    user: "{{ f5_provider.user }}"
+    password: "{{ f5_provider.password }}"
+    validate_certs: "{{ f5_provider.validate_certs | default(false) }}"
+    body_format: json
+    body:
+      domain: "{{ ad_domain | default(bigip_aaa_ad_domain) }}"
+      domainControllers:
+        - name: "{{ ad_dc_ip | default(bigip_aaa_ad_dc_ip) }}"
+          ip: "{{ ad_dc_ip | default(bigip_aaa_ad_dc_ip) }}"
+      adminName: "{{ ad_svc_user | default(bigip_aaa_ad_svc_user) }}"
+      timeout: "{{ ad_timeout | default(bigip_aaa_ad_timeout) }}"
+    status_code:
+      - 200
+      - 204
+  delegate_to: localhost
+  when: bigip_aaa_ad_check.status == 200
+  register: bigip_aaa_ad_update_result
+
+- name: Display AD AAA Configuration Status
+  ansible.builtin.debug:
+    msg: >-
+      AD AAA Object '{{ ad_aaa_server_name | default(bigip_aaa_ad_server_name) }}'
+      status: {{ 'Created' if (bigip_aaa_ad_create_result.changed | default(false)) else 'Verified/Updated' }}
